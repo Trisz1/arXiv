@@ -239,27 +239,23 @@ def score_relevance(client, papers):
 
 # Your summarization prompt. Edit this any time to change how each paper is
 # written up — just keep the {title} and {abstract} placeholders.
-SUMMARY_PROMPT_TEMPLATE = """First, write a "Plain English" section: 2-3 sentences assuming the reader has zero ML or CS background. Lead with the "so what" — what this actually is and why it matters in everyday terms. Avoid jargon entirely; if you must use a technical term, define it in the same sentence. Do not start by restating the technical concept.
+SUMMARY_PROMPT_TEMPLATE = """You are writing a friendly daily research digest for a smart, curious reader who is NOT a machine-learning or computer-science expert. Make cutting-edge work feel approachable and genuinely interesting — never intimidating.
 
-Then, write a "Technical" section with exactly 2 bullet points:
-- What it does
-- What's new
+Write exactly these three sections. Keep each label exactly as written, on its own line, with its text on the following line(s):
+
+In simple terms:
+2-3 sentences in plain, everyday language, as if explaining to a sharp friend with no technical background. Lead with the "so what" — what this actually is and why it matters in real life. Avoid jargon; if you must use a technical word, define it right there in parentheses.
+
+Where it could matter:
+1 sentence on who might use this — the real-world situations and the kinds of companies it could be relevant to.
+
+A little more technical:
+2-3 sentences on what the paper does and what is genuinely new about it. You may use technical terms here, but define anything specialized in parentheses.
 
 Title: {title}
 Abstract: {abstract}
 
-Format your response EXACTLY like this, with no preamble:
-
-PLAIN_ENGLISH:
-[2-3 sentences here]
-
-Adoptability: and what companies it might be relevant to. 1 sentence
-
-TECHNICAL:
-- **What it does**:
-- **What's new**:
-
-Define in parentheses all words I probably don't know."""
+Start directly with "In simple terms:" — no preamble. Write warmly and clearly, and define in parentheses any term the reader likely won't know."""
 
 
 def summarize_paper(client, paper):
@@ -289,52 +285,88 @@ def summarize_paper(client, paper):
 # SECTION 5: RENDER THE EMAIL HTML
 # ---------------------------------------------------------------------------
 
-def render_email_html(summaries):
-    """Build the HTML email body from the list of summarized papers.
+def _format_summary_html(summary):
+    """Turn Claude's summary text into clean, friendly HTML.
 
-    Every piece of paper text is HTML-escaped before it goes into the page,
-    because titles/abstracts/summaries come from outside our code (arXiv +
-    Claude). Escaping stops a stray '<' or '<script>' from breaking — or
-    injecting into — the email. Same trust-boundary habit as before.
+    We escape the untrusted text FIRST, then apply only our own light formatting:
+    a short line ending in ":" becomes a colored section heading, **x** becomes
+    bold, and everything else becomes a readable paragraph. (Escape-before-format
+    keeps the same injection protection as the rest of the renderer.)
+    """
+    pieces = []
+    for line in summary.split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        safe = html.escape(line)
+        safe = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", safe)
+        if len(line) <= 45 and line.endswith(":"):
+            # A section label like "In simple terms:" — show it as a heading.
+            pieces.append(
+                f'<div style="font-weight: 600; color: #4f46e5; font-size: 13px; '
+                f'letter-spacing: 0.01em; margin: 16px 0 4px;">{safe[:-1]}</div>'
+            )
+        else:
+            pieces.append(
+                f'<p style="margin: 0 0 10px; font-size: 15px; color: #374151; '
+                f'line-height: 1.65;">{safe}</p>'
+            )
+    return "\n".join(pieces)
+
+
+def render_email_html(summaries):
+    """Build a warm, easy-to-read HTML digest from the summarized papers.
+
+    All paper text is HTML-escaped before it enters the page (titles, hooks, and
+    summaries come from arXiv + Claude — untrusted), keeping the same injection
+    protection as before.
     """
     today = datetime.now().strftime("%B %d, %Y")
 
-    parts = [f"""\
-<div style="font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; max-width: 680px; margin: 0 auto; color: #1a1a1a; line-height: 1.5;">
-  <h1 style="font-size: 20px; border-bottom: 2px solid #b31b1b; padding-bottom: 8px;">arXiv AI Digest &middot; {today}</h1>
-  <p style="color: #666; font-size: 14px;">{len(summaries)} paper(s) cleared today's relevance bar.</p>"""]
-
+    cards = []
     for p in summaries:
         title = html.escape(p["title"])
         abs_url = html.escape(p["abstract_url"])
         category = html.escape(p["primary_category"])
         score = int(p.get("score", 0))
         hook = html.escape(p.get("hook", ""))
-        summary_html = html.escape(p.get("summary", "")).replace("\n", "<br>")
+        summary_html = _format_summary_html(p.get("summary", ""))
 
-        # Show the first three authors, then "et al." so the meta line stays short.
+        # First three authors, then "et al." so the meta line stays short.
         authors = p.get("authors", [])
-        author_str = ", ".join(authors[:3]) + (", et al." if len(authors) > 3 else "")
-        author_str = html.escape(author_str)
+        author_str = html.escape(", ".join(authors[:3]) + (", et al." if len(authors) > 3 else ""))
 
-        # pdf_url can be None (withdrawn papers), so only add the PDF link if present.
+        # pdf_url can be None (withdrawn papers); only show the PDF link if present.
         pdf_url = p.get("pdf_url")
-        pdf_link = f' &middot; <a href="{html.escape(pdf_url)}">PDF</a>' if pdf_url else ""
+        pdf_link = (f'&nbsp;&middot;&nbsp; <a href="{html.escape(pdf_url)}" '
+                    f'style="color: #4f46e5; text-decoration: none; font-weight: 600;">Download PDF</a>'
+                    if pdf_url else "")
 
-        parts.append(f"""\
-  <div style="margin: 22px 0; padding: 16px; border: 1px solid #e0e0e0; border-radius: 8px;">
-    <h2 style="font-size: 17px; margin: 0 0 6px;"><a href="{abs_url}" style="color: #b31b1b; text-decoration: none;">{title}</a></h2>
-    <div style="font-size: 13px; color: #666; margin-bottom: 10px;">
-      <span style="background: #b31b1b; color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{score}/10</span>
+        # A friendly score pill: green for the strongest matches, indigo otherwise.
+        pill_color = "#16a34a" if score >= 9 else "#4f46e5"
+
+        cards.append(f"""\
+  <div style="background: #ffffff; border: 1px solid #ececf1; border-radius: 14px; padding: 22px; margin: 16px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+    <a href="{abs_url}" style="font-size: 18px; font-weight: 700; color: #4f46e5; text-decoration: none; line-height: 1.35;">{title}</a>
+    <div style="margin: 12px 0; font-size: 13px; color: #6b7280;">
+      <span style="background: {pill_color}; color: #ffffff; border-radius: 999px; padding: 3px 11px; font-weight: 600; font-size: 12px;">Relevance {score}/10</span>
       &nbsp; {category} &nbsp;&middot;&nbsp; {author_str}
     </div>
-    <p style="font-style: italic; color: #444; margin: 10px 0;">{hook}</p>
-    <div style="font-size: 14px; margin: 10px 0;">{summary_html}</div>
-    <div style="font-size: 13px;"><a href="{abs_url}">abstract</a>{pdf_link}</div>
+    <div style="font-style: italic; color: #6b7280; font-size: 14px; margin: 10px 0 2px;">{hook}</div>
+{summary_html}
+    <div style="margin-top: 16px; font-size: 13px;"><a href="{abs_url}" style="color: #4f46e5; text-decoration: none; font-weight: 600;">Read abstract</a>{pdf_link}</div>
   </div>""")
 
-    parts.append("</div>")
-    return "\n".join(parts)
+    body = "\n".join(cards)
+    return f"""\
+<div style="background: #f5f6f8; padding: 8px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <div style="max-width: 640px; margin: 0 auto; padding: 20px 16px;">
+    <div style="font-size: 24px; font-weight: 700; color: #4f46e5;">Your AI Research Digest</div>
+    <div style="font-size: 15px; color: #6b7280; margin: 4px 0 8px;">{today} &middot; {len(summaries)} paper(s), explained simply</div>
+{body}
+    <div style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 22px;">Curated from arXiv, scored and summarized for you.</div>
+  </div>
+</div>"""
 
 
 # ---------------------------------------------------------------------------
