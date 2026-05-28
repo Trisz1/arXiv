@@ -177,7 +177,12 @@ def score_relevance(client, papers):
         for i, p in enumerate(papers)
     )
 
-    response = client.messages.create(
+    # Stream this call: scoring 200 papers generates thousands of tokens, which
+    # holds the connection open for minutes. A non-streaming request that long
+    # gets dropped on some networks (e.g. GitHub Actions runners). Streaming keeps
+    # data flowing so the connection stays alive; get_final_message() then
+    # collects the complete reply.
+    with client.messages.stream(
         model=CLAUDE_MODEL,
         max_tokens=16000,
         system=SCORING_SYSTEM_PROMPT,
@@ -185,9 +190,10 @@ def score_relevance(client, papers):
             "role": "user",
             "content": f"Score these {len(papers)} papers:\n\n{paper_block}",
         }],
-    )
+    ) as stream:
+        message = stream.get_final_message()
 
-    raw = response.content[0].text.strip()
+    raw = message.content[0].text.strip()
 
     # Defensive: we TOLD Claude to emit bare JSON, but we don't trust it blindly.
     # It sometimes wraps output in ```json ... ``` fences anyway — strip them.
