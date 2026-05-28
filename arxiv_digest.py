@@ -6,6 +6,7 @@ Fetches recent papers, scores relevance with Claude, and emails a daily digest.
 import os
 import json
 import base64
+import html
 import re
 from datetime import datetime, timezone, timedelta
 from email.mime.multipart import MIMEMultipart
@@ -252,3 +253,55 @@ def summarize_paper(client, paper):
     except Exception as e:
         print(f"  ! Summary failed for '{paper['title'][:50]}...': {e}")
         return "(Summary unavailable for this paper.)"
+
+
+# ---------------------------------------------------------------------------
+# SECTION 5: RENDER THE EMAIL HTML
+# ---------------------------------------------------------------------------
+
+def render_email_html(summaries):
+    """Build the HTML email body from the list of summarized papers.
+
+    Every piece of paper text is HTML-escaped before it goes into the page,
+    because titles/abstracts/summaries come from outside our code (arXiv +
+    Claude). Escaping stops a stray '<' or '<script>' from breaking — or
+    injecting into — the email. Same trust-boundary habit as before.
+    """
+    today = datetime.now().strftime("%B %d, %Y")
+
+    parts = [f"""\
+<div style="font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; max-width: 680px; margin: 0 auto; color: #1a1a1a; line-height: 1.5;">
+  <h1 style="font-size: 20px; border-bottom: 2px solid #b31b1b; padding-bottom: 8px;">arXiv AI Digest &middot; {today}</h1>
+  <p style="color: #666; font-size: 14px;">{len(summaries)} paper(s) cleared today's relevance bar.</p>"""]
+
+    for p in summaries:
+        title = html.escape(p["title"])
+        abs_url = html.escape(p["abstract_url"])
+        category = html.escape(p["primary_category"])
+        score = int(p.get("score", 0))
+        hook = html.escape(p.get("hook", ""))
+        summary_html = html.escape(p.get("summary", "")).replace("\n", "<br>")
+
+        # Show the first three authors, then "et al." so the meta line stays short.
+        authors = p.get("authors", [])
+        author_str = ", ".join(authors[:3]) + (", et al." if len(authors) > 3 else "")
+        author_str = html.escape(author_str)
+
+        # pdf_url can be None (withdrawn papers), so only add the PDF link if present.
+        pdf_url = p.get("pdf_url")
+        pdf_link = f' &middot; <a href="{html.escape(pdf_url)}">PDF</a>' if pdf_url else ""
+
+        parts.append(f"""\
+  <div style="margin: 22px 0; padding: 16px; border: 1px solid #e0e0e0; border-radius: 8px;">
+    <h2 style="font-size: 17px; margin: 0 0 6px;"><a href="{abs_url}" style="color: #b31b1b; text-decoration: none;">{title}</a></h2>
+    <div style="font-size: 13px; color: #666; margin-bottom: 10px;">
+      <span style="background: #b31b1b; color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{score}/10</span>
+      &nbsp; {category} &nbsp;&middot;&nbsp; {author_str}
+    </div>
+    <p style="font-style: italic; color: #444; margin: 10px 0;">{hook}</p>
+    <div style="font-size: 14px; margin: 10px 0;">{summary_html}</div>
+    <div style="font-size: 13px;"><a href="{abs_url}">abstract</a>{pdf_link}</div>
+  </div>""")
+
+    parts.append("</div>")
+    return "\n".join(parts)
