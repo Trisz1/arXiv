@@ -1,0 +1,8 @@
+# OAuth credentials — NEVER commit these
+credentials.json
+token.json
+
+# Python junk
+__pycache__/
+*.pyc
+.env
