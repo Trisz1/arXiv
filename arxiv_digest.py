@@ -8,6 +8,7 @@ import json
 import base64
 import html
 import re
+import time
 from datetime import datetime, timezone, timedelta
 from email.mime.text import MIMEText
 
@@ -88,7 +89,7 @@ def fetch_recent_papers():
 
     # The client handles paging and politeness: it waits a few seconds between
     # pages so we don't hammer arXiv's free public API (and get rate-limited).
-    client = arxiv.Client(page_size=100, delay_seconds=3, num_retries=3)
+    client = arxiv.Client(page_size=100, delay_seconds=3, num_retries=5)
 
     search = arxiv.Search(
         query=query,
@@ -100,24 +101,36 @@ def fetch_recent_papers():
     # Anything submitted before this moment is too old for today's digest.
     cutoff = datetime.now(timezone.utc) - timedelta(hours=LOOKBACK_HOURS)
 
-    papers = []
-    for result in client.results(search):
-        # Results arrive newest-first. The moment one is older than the cutoff,
-        # every paper after it is older too — so we can stop early.
-        if result.published < cutoff:
-            break
+    # arXiv rate-limits shared/cloud IPs (like GitHub Actions runners) with HTTP
+    # 429. The limit usually clears after a short wait, so retry the whole fetch
+    # with exponential backoff (10s, 20s, 40s, 80s) before giving up.
+    last_error = None
+    for attempt in range(5):
+        try:
+            papers = []
+            for result in client.results(search):
+                # Results arrive newest-first. The moment one is older than the
+                # cutoff, every paper after it is older too — so stop early.
+                if result.published < cutoff:
+                    break
+                papers.append({
+                    "title": " ".join(result.title.split()),
+                    "abstract": " ".join(result.summary.split()),
+                    "authors": [a.name for a in result.authors],
+                    "primary_category": result.primary_category,
+                    "abstract_url": result.entry_id,
+                    "pdf_url": result.pdf_url,
+                    "published": result.published,
+                })
+            return papers
+        except arxiv.HTTPError as e:
+            last_error = e
+            if attempt < 4:
+                wait = 10 * (2 ** attempt)
+                print(f"  arXiv error ({e}); retrying in {wait}s (attempt {attempt + 1}/5)...")
+                time.sleep(wait)
 
-        papers.append({
-            "title": " ".join(result.title.split()),
-            "abstract": " ".join(result.summary.split()),
-            "authors": [a.name for a in result.authors],
-            "primary_category": result.primary_category,
-            "abstract_url": result.entry_id,
-            "pdf_url": result.pdf_url,
-            "published": result.published,
-        })
-
-    return papers
+    raise SystemExit(f"arXiv kept rate-limiting us after 5 tries. Last error: {last_error}")
 
 
 # ---------------------------------------------------------------------------
