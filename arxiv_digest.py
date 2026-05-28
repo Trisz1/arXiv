@@ -349,3 +349,54 @@ def send_email(service, to, subject, html_body):
     # The Gmail API wants the raw RFC-822 message, base64url-encoded.
     raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
     service.users().messages().send(userId="me", body={"raw": raw}).execute()
+
+
+# ---------------------------------------------------------------------------
+# SECTION 7: MAIN (orchestration)
+# ---------------------------------------------------------------------------
+
+def main():
+    # Fail fast, with a clear message, if the secrets aren't set.
+    if not ANTHROPIC_API_KEY:
+        raise SystemExit("ERROR: set the ANTHROPIC_API_KEY environment variable first.")
+    if not RECIPIENT_EMAIL:
+        raise SystemExit("ERROR: set the RECIPIENT_EMAIL environment variable first.")
+
+    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+
+    print(f"Fetching papers from arXiv (last {LOOKBACK_HOURS}h, cap {MAX_PAPERS_FETCHED})...")
+    papers = fetch_recent_papers()
+    print(f"  -> {len(papers)} papers fetched.")
+    if not papers:
+        print("Nothing fetched. Exiting.")
+        return
+
+    print("Scoring relevance in one batched Claude call...")
+    keepers = score_relevance(client, papers)
+    print(f"  -> {len(keepers)} papers scored >= {RELEVANCE_THRESHOLD}.")
+    if not keepers:
+        print("No papers cleared the bar today. No email sent.")
+        return
+
+    # Hard cap for cost control: only summarize the top N.
+    keepers = keepers[:MAX_SUMMARIES]
+    print(f"Summarizing top {len(keepers)} (cap is {MAX_SUMMARIES})...")
+    for i, paper in enumerate(keepers, 1):
+        print(f"  [{i}/{len(keepers)}] {paper['title'][:60]}...")
+        paper["summary"] = summarize_paper(client, paper)
+
+    print("Rendering email...")
+    html_body = render_email_html(keepers)
+
+    print("Authenticating with Gmail (browser opens on first run only)...")
+    service = get_gmail_service()
+
+    today = datetime.now().strftime("%b %d, %Y")
+    subject = f"arXiv AI Digest - {today} ({len(keepers)} papers)"
+    print(f"Sending digest to {RECIPIENT_EMAIL}...")
+    send_email(service, RECIPIENT_EMAIL, subject, html_body)
+    print("Done! Digest sent.")
+
+
+if __name__ == "__main__":
+    main()
