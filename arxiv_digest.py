@@ -375,7 +375,9 @@ def main():
     if not RECIPIENT_EMAIL:
         raise SystemExit("ERROR: set the RECIPIENT_EMAIL environment variable first.")
 
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    # max_retries lets the SDK ride out transient network blips and rate limits
+    # (it retries connection errors / 429 / 5xx with exponential backoff).
+    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, max_retries=5)
 
     print(f"Fetching papers from arXiv (last {LOOKBACK_HOURS}h, cap {MAX_PAPERS_FETCHED})...")
     papers = fetch_recent_papers()
