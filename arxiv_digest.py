@@ -38,8 +38,11 @@ CLAUDE_MODEL = "claude-opus-4-7"
 # This is the narrowest scope that does the job.
 GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
-RECIPIENT_EMAIL = os.environ.get("RECIPIENT_EMAIL")
+# .strip() guards against a trailing newline or space sneaking in when these get
+# pasted into env vars / GitHub secrets. A newline inside a header value (the API
+# key, or the "To" address) is rejected by HTTP as an "illegal header value".
+ANTHROPIC_API_KEY = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+RECIPIENT_EMAIL = (os.environ.get("RECIPIENT_EMAIL") or "").strip()
 
 # ---------------------------------------------------------------------------
 # INTEREST PROFILE
