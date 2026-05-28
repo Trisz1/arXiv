@@ -237,20 +237,29 @@ def score_relevance(client, papers):
 # SECTION 4: SUMMARIZE A SINGLE PAPER (one Claude call per paper)
 # ---------------------------------------------------------------------------
 
-# ===========================================================================
-# >>>>>>>>>>   PLACEHOLDER PROMPT — WRITE YOUR REAL ONE HERE LATER   <<<<<<<<<<
-# ===========================================================================
-# This is a stub. Replace the text below with your own summarization prompt
-# whenever you're ready. Just keep the {title} and {abstract} placeholders so
-# each paper's data gets filled in.
-SUMMARY_PROMPT_TEMPLATE = """Summarize this arXiv paper in exactly 3 bullet points:
+# Your summarization prompt. Edit this any time to change how each paper is
+# written up — just keep the {title} and {abstract} placeholders.
+SUMMARY_PROMPT_TEMPLATE = """First, write a "Plain English" section: 2-3 sentences assuming the reader has zero ML or CS background. Lead with the "so what" — what this actually is and why it matters in everyday terms. Avoid jargon entirely; if you must use a technical term, define it in the same sentence. Do not start by restating the technical concept.
+
+Then, write a "Technical" section with exactly 2 bullet points:
 - What it does
 - What's new
-- Why it matters
 
 Title: {title}
-Abstract: {abstract}"""
-# ===========================================================================
+Abstract: {abstract}
+
+Format your response EXACTLY like this, with no preamble:
+
+PLAIN_ENGLISH:
+[2-3 sentences here]
+
+Adoptability: and what companies it might be relevant to. 1 sentence
+
+TECHNICAL:
+- **What it does**:
+- **What's new**:
+
+Define in parentheses all words I probably don't know."""
 
 
 def summarize_paper(client, paper):
