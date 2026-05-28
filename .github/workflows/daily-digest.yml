@@ -1,0 +1,37 @@
+name: Daily arXiv Digest
+
+# WHEN it runs:
+on:
+  schedule:
+    # 11:00 UTC every day = ~7am US Eastern (drifts 1h with daylight saving).
+    # Change the "11" to a different UTC hour to move the delivery time.
+    - cron: "0 11 * * *"
+  # Lets you also trigger it by hand from the repo's "Actions" tab (great for testing).
+  workflow_dispatch:
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Rebuild the two Google files from encrypted secrets (they are NOT in the repo).
+      - name: Recreate Google credential files
+        run: |
+          echo "${{ secrets.GMAIL_CREDENTIALS_B64 }}" | base64 -d > credentials.json
+          echo "${{ secrets.GMAIL_TOKEN_B64 }}" | base64 -d > token.json
+
+      - name: Run the digest
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+        run: python arxiv_digest.py
