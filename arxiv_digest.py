@@ -72,3 +72,50 @@ LOW INTEREST / SKIP (score 1-4):
 - Domain-specific applications (medical imaging, satellite imagery, etc.)
   unless the underlying technique is broadly novel
 """
+
+
+# ---------------------------------------------------------------------------
+# SECTION 2: FETCH PAPERS FROM ARXIV
+# ---------------------------------------------------------------------------
+
+def fetch_recent_papers():
+    """Pull recent papers from arXiv across our categories.
+
+    Returns a list of dicts (newest first), each holding the fields we need
+    downstream: title, abstract, authors, category, and links.
+    """
+    # Build a query matching ANY of our categories: "cat:cs.AI OR cat:cs.LG OR ..."
+    query = " OR ".join(f"cat:{c}" for c in ARXIV_CATEGORIES)
+
+    # The client handles paging and politeness: it waits a few seconds between
+    # pages so we don't hammer arXiv's free public API (and get rate-limited).
+    client = arxiv.Client(page_size=100, delay_seconds=3, num_retries=3)
+
+    search = arxiv.Search(
+        query=query,
+        max_results=MAX_PAPERS_FETCHED,
+        sort_by=arxiv.SortCriterion.SubmittedDate,
+        sort_order=arxiv.SortOrder.Descending,
+    )
+
+    # Anything submitted before this moment is too old for today's digest.
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=LOOKBACK_HOURS)
+
+    papers = []
+    for result in client.results(search):
+        # Results arrive newest-first. The moment one is older than the cutoff,
+        # every paper after it is older too — so we can stop early.
+        if result.published < cutoff:
+            break
+
+        papers.append({
+            "title": " ".join(result.title.split()),
+            "abstract": " ".join(result.summary.split()),
+            "authors": [a.name for a in result.authors],
+            "primary_category": result.primary_category,
+            "abstract_url": result.entry_id,
+            "pdf_url": result.pdf_url,
+            "published": result.published,
+        })
+
+    return papers
