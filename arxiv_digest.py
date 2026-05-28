@@ -209,3 +209,46 @@ def score_relevance(client, papers):
 
     keepers.sort(key=lambda p: p["score"], reverse=True)
     return keepers
+
+
+# ---------------------------------------------------------------------------
+# SECTION 4: SUMMARIZE A SINGLE PAPER (one Claude call per paper)
+# ---------------------------------------------------------------------------
+
+# ===========================================================================
+# >>>>>>>>>>   PLACEHOLDER PROMPT — WRITE YOUR REAL ONE HERE LATER   <<<<<<<<<<
+# ===========================================================================
+# This is a stub. Replace the text below with your own summarization prompt
+# whenever you're ready. Just keep the {title} and {abstract} placeholders so
+# each paper's data gets filled in.
+SUMMARY_PROMPT_TEMPLATE = """Summarize this arXiv paper in exactly 3 bullet points:
+- What it does
+- What's new
+- Why it matters
+
+Title: {title}
+Abstract: {abstract}"""
+# ===========================================================================
+
+
+def summarize_paper(client, paper):
+    """Generate a short summary for ONE paper via a single Claude call.
+
+    Returns the summary text. If the call fails (rate limit, network blip), we
+    return a fallback note instead of raising — one bad paper shouldn't sink
+    the other nine summaries in the digest.
+    """
+    prompt = SUMMARY_PROMPT_TEMPLATE.format(
+        title=paper["title"],
+        abstract=paper["abstract"],
+    )
+    try:
+        response = client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=1000,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.content[0].text.strip()
+    except Exception as e:
+        print(f"  ! Summary failed for '{paper['title'][:50]}...': {e}")
+        return "(Summary unavailable for this paper.)"
