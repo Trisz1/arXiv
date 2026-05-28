@@ -26,7 +26,7 @@ ARXIV_CATEGORIES = ["cs.AI", "cs.LG", "cs.CL", "cs.AR", "cs.DC", "cs.NE"]
 LOOKBACK_HOURS = 36
 MAX_PAPERS_FETCHED = 200
 RELEVANCE_THRESHOLD = 7
-MAX_SUMMARIES = 10
+MAX_SUMMARIES = 5
 
 # Model to use. Swapping to "claude-haiku-4-5-20251001" cuts cost ~10x
 # at the expense of summary quality — good option if you want to run this
