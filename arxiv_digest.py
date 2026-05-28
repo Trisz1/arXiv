@@ -7,7 +7,6 @@ import os
 import json
 import base64
 import re
-import textwrap
 from datetime import datetime, timezone, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -119,3 +118,94 @@ def fetch_recent_papers():
         })
 
     return papers
+
+
+# ---------------------------------------------------------------------------
+# SECTION 3: SCORE RELEVANCE (one batched Claude call)
+# ---------------------------------------------------------------------------
+
+# Standing instructions for the scoring call. This is written at column 0 (no
+# indentation) so the text Claude receives is exactly what you see here.
+SCORING_SYSTEM_PROMPT = f"""You are a research assistant filtering arXiv papers for one specific reader.
+
+Here is the reader's interest profile:
+{INTEREST_PROFILE}
+
+You will receive a numbered list of papers, each with an id, title, primary
+category, and abstract. For EVERY paper, assign:
+  - "score": an integer from 1 to 10 (10 = perfect fit, 1 = irrelevant)
+  - "hook": ONE sentence (max ~25 words) saying why it might matter to this
+    reader. Be specific and concrete, not generic praise.
+
+Output ONLY a JSON array — one object per paper — exactly like this:
+[{{"id": 0, "score": 8, "hook": "..."}}, {{"id": 1, "score": 3, "hook": "..."}}]
+
+Do not write anything before or after the JSON array. Do not wrap it in
+markdown code fences."""
+
+
+def score_relevance(client, papers):
+    """Score every paper in ONE Claude call, then filter and sort.
+
+    Returns the papers scoring >= RELEVANCE_THRESHOLD, highest first, each with
+    "score" and "hook" added. Returns [] on any failure (an empty digest beats
+    a crash).
+    """
+    if not papers:
+        return []
+
+    # Build a compact, numbered block. We send only what's needed to judge
+    # relevance (id, title, category, abstract) — not authors or links — to
+    # keep the single call as cheap as possible.
+    paper_block = "\n\n".join(
+        f"[{i}] Title: {p['title']}\n"
+        f"Category: {p['primary_category']}\n"
+        f"Abstract: {p['abstract']}"
+        for i, p in enumerate(papers)
+    )
+
+    response = client.messages.create(
+        model=CLAUDE_MODEL,
+        max_tokens=16000,
+        system=SCORING_SYSTEM_PROMPT,
+        messages=[{
+            "role": "user",
+            "content": f"Score these {len(papers)} papers:\n\n{paper_block}",
+        }],
+    )
+
+    raw = response.content[0].text.strip()
+
+    # Defensive: we TOLD Claude to emit bare JSON, but we don't trust it blindly.
+    # It sometimes wraps output in ```json ... ``` fences anyway — strip them.
+    raw = re.sub(r"^```(?:json)?", "", raw).strip()
+    raw = re.sub(r"```$", "", raw).strip()
+
+    try:
+        scored = json.loads(raw)
+    except json.JSONDecodeError as e:
+        print(f"  ! Could not parse Claude's scoring JSON ({e}); skipping this run.")
+        return []
+
+    if not isinstance(scored, list):
+        print("  ! Scoring response was not a JSON array; skipping this run.")
+        return []
+
+    # Map scores back onto the original papers by id. Coerce types defensively
+    # because this is model output — never assume it's well-formed.
+    keepers = []
+    for item in scored:
+        try:
+            idx = int(item["id"])
+            score = int(item["score"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if idx < 0 or idx >= len(papers) or score < RELEVANCE_THRESHOLD:
+            continue
+        paper = papers[idx]
+        paper["score"] = score
+        paper["hook"] = str(item.get("hook", "")).strip()
+        keepers.append(paper)
+
+    keepers.sort(key=lambda p: p["score"], reverse=True)
+    return keepers
