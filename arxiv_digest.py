@@ -9,7 +9,6 @@ import base64
 import html
 import re
 from datetime import datetime, timezone, timedelta
-from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 import arxiv
@@ -305,3 +304,48 @@ def render_email_html(summaries):
 
     parts.append("</div>")
     return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# SECTION 6: GMAIL (OAuth sign-in + send)
+# ---------------------------------------------------------------------------
+
+def get_gmail_service():
+    """Authenticate with Gmail and return a service object for sending mail.
+
+    - First ever run: opens a browser so you can click "Allow", then writes
+      token.json.
+    - Every run after: silently loads token.json (refreshing it if the short
+      access token has expired) — no browser needed.
+    """
+    creds = None
+
+    # token.json is your saved sign-in from a previous run.
+    if os.path.exists("token.json"):
+        creds = Credentials.from_authorized_user_file("token.json", GMAIL_SCOPES)
+
+    # No valid sign-in on hand? Either refresh it, or do the one-time browser flow.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())  # silent: swap the expired token for a fresh one
+        else:
+            # credentials.json identifies OUR app to Google; this opens the browser.
+            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", GMAIL_SCOPES)
+            creds = flow.run_local_server(port=0)
+        # Save the sign-in so future runs skip the browser.
+        with open("token.json", "w") as f:
+            f.write(creds.to_json())
+
+    return build("gmail", "v1", credentials=creds)
+
+
+def send_email(service, to, subject, html_body):
+    """Send one HTML email through the Gmail API."""
+    # charset utf-8 so accented author names / unicode in titles don't crash encoding.
+    message = MIMEText(html_body, "html", "utf-8")
+    message["To"] = to
+    message["Subject"] = subject
+
+    # The Gmail API wants the raw RFC-822 message, base64url-encoded.
+    raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    service.users().messages().send(userId="me", body={"raw": raw}).execute()
