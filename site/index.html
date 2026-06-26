@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<!--
+  Landing page for Your AI Research Digest.
+
+  The signup form uses Netlify Forms (the simplest path: deploy this folder
+  to Netlify and submissions are captured automatically — no backend code,
+  no API key). If you ever host this elsewhere, replace the fetch('/') call
+  in the inline script at the bottom with your form backend (Formspree,
+  Getform, your own endpoint, etc.).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your AI Research Digest — Understand the AI frontier in five minutes a day</title>
+<meta name="description" content="Each morning we read the newest papers on arXiv, rank the five that matter most, and rewrite them in plain English. No engineering background required.">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#f5f5f7;color:#3d3d40;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Segoe UI',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;font-size:16px;line-height:1.6;}
+  input,button{font-family:inherit}
+  input::placeholder{color:#a1a1a8}
+  ::selection{background:rgba(0,113,227,0.15)}
+  .email-input:focus{border-color:#0071e3 !important;box-shadow:0 0 0 3px rgba(0,113,227,0.12);}
+  .subscribe-btn:hover{opacity:0.92;cursor:pointer;}
+  .card-title:hover{color:#0071e3 !important;}
+  .footer-link:hover{opacity:0.7;}
+  a{transition:opacity 120ms ease, color 120ms ease;}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div style="max-width:1080px; margin:0 auto; padding:26px 32px; display:flex; align-items:center; justify-content:space-between;">
+  <div style="display:flex; align-items:center; gap:11px;">
+    <div style="width:30px; height:30px; border-radius:8px; background:#1d1d1f; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;">
+      <div style="width:15px; height:2.5px; border-radius:2px; background:#0071e3;"></div>
+      <div style="width:15px; height:2.5px; border-radius:2px; background:#86868b;"></div>
+      <div style="width:9px; height:2.5px; border-radius:2px; background:#86868b;"></div>
+    </div>
+    <span style="font-size:15px; font-weight:600; color:#1d1d1f; letter-spacing:-0.01em;">Your AI Research Digest</span>
+  </div>
+  <a href="#signup" class="footer-link" style="font-size:14px; font-weight:500; text-decoration:none; color:#0071e3;">Subscribe</a>
+</div>
+
+<!-- HERO -->
+<div style="max-width:720px; margin:0 auto; padding:72px 32px 80px; text-align:center;">
+  <div style="font-size:12px; font-weight:600; letter-spacing:0.09em; text-transform:uppercase; color:#0071e3; margin-bottom:22px;">A daily AI research digest</div>
+  <h1 style="font-size:clamp(36px,6vw,60px); line-height:1.04; font-weight:600; letter-spacing:-0.03em; color:#1d1d1f; margin:0 0 24px;">Understand the AI frontier in five minutes a day.</h1>
+  <p style="font-size:19px; line-height:1.55; color:#515154; max-width:560px; margin:0 auto 38px;">Each morning we read the newest papers on arXiv, rank the five that matter most, and rewrite them in plain English. No engineering background required.</p>
+
+  <div id="signup" style="max-width:440px; margin:0 auto;">
+    <form id="signup-form" name="subscribe" method="POST" data-netlify="true" data-netlify-honeypot="bot-field" style="display:flex; gap:10px;">
+      <input type="hidden" name="form-name" value="subscribe">
+      <p style="display:none;"><label>Don&rsquo;t fill this out: <input name="bot-field"></label></p>
+      <input class="email-input" type="email" name="email" required placeholder="you@example.com" style="flex:1; min-width:0; height:50px; padding:0 18px; font-size:16px; color:#1d1d1f; background:#ffffff; border:1px solid #e2e2e6; border-radius:12px; outline:none; transition:border-color 120ms ease, box-shadow 120ms ease;">
+      <button class="subscribe-btn" type="submit" style="height:50px; padding:0 24px; font-size:16px; font-weight:500; color:#ffffff; background:#0071e3; border:none; border-radius:12px; white-space:nowrap; transition:opacity 120ms ease;">Subscribe</button>
+    </form>
+    <div id="signup-success" style="display:none; height:50px; align-items:center; justify-content:center; background:#ffffff; border:1px solid #e2e2e6; border-radius:12px; font-size:15px; color:#1d1d1f;">You&rsquo;re in. Your first issue arrives tomorrow at ~7am ET.</div>
+    <p style="font-size:13px; color:#86868b; margin:16px 0 0;">Free &middot; Daily at ~7am ET &middot; Unsubscribe anytime</p>
+  </div>
+
+  <p style="font-size:14px; color:#86868b; margin:48px auto 0; max-width:480px;">We go upstream to the papers themselves &mdash; not a recap of someone&rsquo;s thread.</p>
+</div>
+
+<!-- WHAT YOU'LL GET -->
+<div style="max-width:720px; margin:0 auto; padding:24px 32px 8px; text-align:center;">
+  <div style="font-size:12px; font-weight:600; letter-spacing:0.09em; text-transform:uppercase; color:#0071e3; margin-bottom:16px;">What you&rsquo;ll get</div>
+  <h2 style="font-size:clamp(28px,4vw,38px); line-height:1.1; font-weight:600; letter-spacing:-0.025em; color:#1d1d1f; margin:0 0 16px;">What lands in your inbox</h2>
+  <p style="font-size:18px; line-height:1.55; color:#515154; max-width:520px; margin:0 auto 44px;">Every issue is a short stack of paper cards. Here is one, exactly as it ships.</p>
+</div>
+
+<!-- SAMPLE PAPER CARD -->
+<div style="max-width:660px; margin:0 auto; padding:0 32px;">
+  <div style="background:#ffffff; border-radius:18px; padding:38px 40px; box-shadow:0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.06); text-align:left;">
+    <a href="#" class="card-title" style="display:block; font-size:21px; font-weight:600; line-height:1.28; letter-spacing:-0.015em; color:#1d1d1f; text-decoration:none; margin-bottom:14px;">Cache-Resident LLM Inference in GB-Scale Last-Level Caches</a>
+
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:18px;">
+      <span style="font-size:12px; font-weight:600; color:#515154; background:#f0f0f2; border-radius:999px; padding:4px 11px;">Relevance 9/10</span>
+      <span style="font-size:13.5px; color:#86868b;">cs.AR &middot; Wanning Zhang, Tongzhou Gu, Marco Canini, et al.</span>
+    </div>
+
+    <p style="font-style:italic; font-size:15.5px; line-height:1.55; color:#86868b; margin:0 0 28px;">Cache-resident LLM inference exploits new GB-scale 3D-stacked last-level caches to hit 2&ndash;13.9&times; TPOT speedup over llama.cpp &mdash; directly relevant to inference infrastructure.</p>
+
+    <div style="font-size:11.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#0071e3; margin-bottom:9px;">In simple terms</div>
+    <p style="font-size:16px; line-height:1.65; color:#3d3d40; margin:0 0 26px;">Ordinary computer processors (CPUs) &mdash; not just expensive AI graphics chips &mdash; can run large language models much faster if you cleverly store the model&rsquo;s &ldquo;knowledge&rdquo; in the chip&rsquo;s built-in, super-fast memory. The team saw speedups of 2&times; to 11&times; on real models, which could make running AI both cheaper and more accessible.</p>
+
+    <div style="font-size:11.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#0071e3; margin-bottom:9px;">Where it could matter</div>
+    <p style="font-size:16px; line-height:1.65; color:#3d3d40; margin:0 0 26px;">Companies running AI on their own servers &mdash; from cloud providers to enterprises hosting private chatbots &mdash; could use this to cut hardware costs and lean less on scarce, pricey GPUs.</p>
+
+    <div style="font-size:11.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#0071e3; margin-bottom:9px;">A little more technical</div>
+    <p style="font-size:16px; line-height:1.65; color:#3d3d40; margin:0 0 30px;">The paper introduces a &ldquo;cache-resident&rdquo; execution model that keeps model weights in new 3D-stacked last-level caches (very fast on-chip memory now reaching gigabyte sizes) instead of constantly fetching them from slower RAM. It also separates weight-heavy computation from attention / KV-cache work, and replaces rigid operator-by-operator synchronization with finer-grained dependency tracking &mdash; removing the bottlenecks that appear once weights live in cache.</p>
+
+    <div style="height:1px; background:#ededef; margin:0 0 18px;"></div>
+    <div style="display:flex; gap:18px;">
+      <a href="#" style="font-size:14px; font-weight:500; text-decoration:none; color:#0071e3;">Read abstract</a>
+      <a href="#" style="font-size:14px; font-weight:500; text-decoration:none; color:#0071e3;">Download PDF</a>
+    </div>
+  </div>
+</div>
+
+<!-- FORMAT FEATURES -->
+<div style="max-width:900px; margin:0 auto; padding:64px 32px 16px;">
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:36px;">
+    <div>
+      <div style="font-size:11.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#0071e3; margin-bottom:11px;">Ranked by relevance</div>
+      <p style="font-size:15.5px; line-height:1.6; color:#515154; margin:0;">A 1&ndash;10 score on every paper. If it made the issue, it earned the five minutes.</p>
+    </div>
+    <div>
+      <div style="font-size:11.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#0071e3; margin-bottom:11px;">Three layers of depth</div>
+      <p style="font-size:15.5px; line-height:1.6; color:#515154; margin:0;">Simple terms, where it matters, and a little more technical. Read only as deep as you like.</p>
+    </div>
+    <div>
+      <div style="font-size:11.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#0071e3; margin-bottom:11px;">For the curious</div>
+      <p style="font-size:15.5px; line-height:1.6; color:#515154; margin:0;">Real terms &mdash; token, inference, agent &mdash; defined in passing. Never childish analogies.</p>
+    </div>
+  </div>
+</div>
+
+<!-- WHO IT'S FOR -->
+<div style="max-width:680px; margin:0 auto; padding:88px 32px 32px;">
+  <div style="font-size:12px; font-weight:600; letter-spacing:0.09em; text-transform:uppercase; color:#0071e3; margin-bottom:16px;">Who it&rsquo;s for</div>
+  <h2 style="font-size:clamp(26px,3.6vw,34px); line-height:1.12; font-weight:600; letter-spacing:-0.02em; color:#1d1d1f; margin:0 0 24px;">Fluent in AI as a tool, not in the math behind it.</h2>
+  <p style="font-size:18px; line-height:1.66; color:#3d3d40; margin:0 0 20px;">You use ChatGPT and Claude every day. You know what large language models and agents are &mdash; as a user. You have just never trained one, and you don&rsquo;t have the hours to wade through arXiv yourself.</p>
+  <p style="font-size:18px; line-height:1.66; color:#3d3d40; margin:0;">This is for the analyst, the consultant, the early-stage investor, the strategy lead at a tech-adjacent company &mdash; anyone who wants to follow the research without slogging through the equations.</p>
+</div>
+
+<!-- SITE FOOTER -->
+<div style="border-top:1px solid #ededef; margin-top:72px;">
+  <div style="max-width:1080px; margin:0 auto; padding:40px 32px 64px; display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap;">
+    <div style="display:flex; align-items:center; gap:11px;">
+      <div style="width:26px; height:26px; border-radius:7px; background:#1d1d1f; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2.5px;">
+        <div style="width:13px; height:2px; border-radius:2px; background:#0071e3;"></div>
+        <div style="width:13px; height:2px; border-radius:2px; background:#86868b;"></div>
+        <div style="width:8px; height:2px; border-radius:2px; background:#86868b;"></div>
+      </div>
+      <span style="font-size:13.5px; color:#86868b;">Built on open research from arXiv.org</span>
+    </div>
+    <div style="display:flex; gap:22px;">
+      <a href="#" class="footer-link" style="font-size:13.5px; text-decoration:none; color:#0071e3;">About</a>
+      <a href="#" class="footer-link" style="font-size:13.5px; text-decoration:none; color:#0071e3;">Archive</a>
+      <a href="mailto:?subject=unsubscribe" class="footer-link" style="font-size:13.5px; text-decoration:none; color:#86868b;">Unsubscribe</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // On submit: POST to Netlify Forms (same-origin), then swap the form for the success state.
+  document.getElementById('signup-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var form = e.target;
+    var body = new URLSearchParams(new FormData(form)).toString();
+    fetch('/', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: body
+    }).then(function(r) {
+      if (!r.ok) throw new Error('submit failed');
+      form.style.display = 'none';
+      document.getElementById('signup-success').style.display = 'flex';
+    }).catch(function() {
+      alert('Something went wrong. Please try again in a moment.');
+    });
+  });
+</script>
+
+</body>
+</html>
