@@ -239,23 +239,23 @@ def score_relevance(client, papers):
 
 # Your summarization prompt. Edit this any time to change how each paper is
 # written up — just keep the {title} and {abstract} placeholders.
-SUMMARY_PROMPT_TEMPLATE = """You are writing a friendly daily research digest for a smart, curious reader who is NOT a machine-learning or computer-science expert. Make cutting-edge work feel approachable and genuinely interesting — never intimidating.
+SUMMARY_PROMPT_TEMPLATE = """You are writing a daily AI research digest for a sharp, AI-fluent reader — picture a bright 22-year-old recent graduate who uses AI tools every day but has no engineering, machine-learning, or research background. Respect their intelligence: explain clearly and directly, never write down to them, and avoid cutesy analogies or childish comparisons.
 
 Write exactly these three sections. Keep each label exactly as written, on its own line, with its text on the following line(s):
 
 In simple terms:
-2-3 sentences in plain, everyday language, as if explaining to a sharp friend with no technical background. Lead with the "so what" — what this actually is and why it matters in real life. Avoid jargon; if you must use a technical word, define it right there in parentheses.
+2-3 sentences explaining what this is and why it matters. Explain the actual idea, not a hand-holding metaphor. You may assume the reader knows everyday AI concepts (large language models, chatbots, AI agents), but explain the underlying science or industry context they wouldn't know, defining any specialized term briefly in parentheses.
 
 Where it could matter:
 1 sentence on who might use this — the real-world situations and the kinds of companies it could be relevant to.
 
 A little more technical:
-2-3 sentences on what the paper does and what is genuinely new about it. You may use technical terms here, but define anything specialized in parentheses.
+2-3 sentences going a level deeper on what the paper does and what is genuinely new about it. You may use technical terms here; define anything specialized in parentheses.
 
 Title: {title}
 Abstract: {abstract}
 
-Start directly with "In simple terms:" — no preamble. Write warmly and clearly, and define in parentheses any term the reader likely won't know."""
+Start directly with "In simple terms:" — no preamble."""
 
 
 def summarize_paper(client, paper):
@@ -301,15 +301,15 @@ def _format_summary_html(summary):
         safe = html.escape(line)
         safe = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", safe)
         if len(line) <= 45 and line.endswith(":"):
-            # A section label like "In simple terms:" — show it as a heading.
+            # Section label: small uppercase in accent blue, no divider above —
+            # the design rhythm comes from spacing, not lines.
             pieces.append(
-                f'<div style="font-weight: 600; color: #4f46e5; font-size: 13px; '
-                f'letter-spacing: 0.01em; margin: 16px 0 4px;">{safe[:-1]}</div>'
+                f'<div style="font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; '
+                f'text-transform: uppercase; color: #0071e3; margin-bottom: 9px;">{safe[:-1]}</div>'
             )
         else:
             pieces.append(
-                f'<p style="margin: 0 0 10px; font-size: 15px; color: #374151; '
-                f'line-height: 1.65;">{safe}</p>'
+                f'<p style="margin: 0 0 26px; font-size: 16px; line-height: 1.65; color: #3d3d40;">{safe}</p>'
             )
     return "\n".join(pieces)
 
@@ -338,33 +338,36 @@ def render_email_html(summaries):
 
         # pdf_url can be None (withdrawn papers); only show the PDF link if present.
         pdf_url = p.get("pdf_url")
-        pdf_link = (f'&nbsp;&middot;&nbsp; <a href="{html.escape(pdf_url)}" '
-                    f'style="color: #4f46e5; text-decoration: none; font-weight: 600;">Download PDF</a>'
+        pdf_link = (f'<a href="{html.escape(pdf_url)}" '
+                    f'style="font-weight: 500; color: #0071e3; text-decoration: none;">Download PDF</a>'
                     if pdf_url else "")
 
-        # A friendly score pill: green for the strongest matches, indigo otherwise.
-        pill_color = "#16a34a" if score >= 9 else "#4f46e5"
-
         cards.append(f"""\
-  <div style="background: #ffffff; border: 1px solid #ececf1; border-radius: 14px; padding: 22px; margin: 16px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
-    <a href="{abs_url}" style="font-size: 18px; font-weight: 700; color: #4f46e5; text-decoration: none; line-height: 1.35;">{title}</a>
-    <div style="margin: 12px 0; font-size: 13px; color: #6b7280;">
-      <span style="background: {pill_color}; color: #ffffff; border-radius: 999px; padding: 3px 11px; font-weight: 600; font-size: 12px;">Relevance {score}/10</span>
-      &nbsp; {category} &nbsp;&middot;&nbsp; {author_str}
+  <div style="background: #ffffff; border-radius: 18px; padding: 38px 40px; margin: 22px 0; box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.06); text-align: left;">
+    <a href="{abs_url}" style="display: block; font-size: 21px; font-weight: 600; line-height: 1.28; letter-spacing: -0.015em; color: #1d1d1f; text-decoration: none; margin-bottom: 14px;">{title}</a>
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 18px;">
+      <span style="font-size: 12px; font-weight: 600; color: #515154; background: #f0f0f2; border-radius: 999px; padding: 4px 11px;">Relevance {score}/10</span>
+      <span style="font-size: 13.5px; color: #86868b;">{category} &middot; {author_str}</span>
     </div>
-    <div style="font-style: italic; color: #6b7280; font-size: 14px; margin: 10px 0 2px;">{hook}</div>
+    <p style="font-style: italic; font-size: 15.5px; line-height: 1.55; color: #86868b; margin: 0 0 28px;">{hook}</p>
 {summary_html}
-    <div style="margin-top: 16px; font-size: 13px;"><a href="{abs_url}" style="color: #4f46e5; text-decoration: none; font-weight: 600;">Read abstract</a>{pdf_link}</div>
+    <div style="height: 1px; background: #ededef; margin: 0 0 18px;"></div>
+    <div style="display: flex; gap: 18px; font-size: 14px;">
+      <a href="{abs_url}" style="font-weight: 500; color: #0071e3; text-decoration: none;">Read abstract</a>{pdf_link}
+    </div>
   </div>""")
 
     body = "\n".join(cards)
     return f"""\
-<div style="background: #f5f6f8; padding: 8px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-  <div style="max-width: 640px; margin: 0 auto; padding: 20px 16px;">
-    <div style="font-size: 24px; font-weight: 700; color: #4f46e5;">Your AI Research Digest</div>
-    <div style="font-size: 15px; color: #6b7280; margin: 4px 0 8px;">{today} &middot; {len(summaries)} paper(s), explained simply</div>
+<div style="background: #f5f5f7; padding: 8px 0 28px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <div style="max-width: 660px; margin: 0 auto; padding: 0 16px;">
+    <div style="padding: 36px 4px 14px;">
+      <div style="font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #0071e3; margin-bottom: 10px;">Today&rsquo;s research</div>
+      <div style="font-size: 28px; font-weight: 600; color: #1d1d1f; letter-spacing: -0.02em; line-height: 1.1;">Your AI Research Digest</div>
+      <div style="font-size: 15px; color: #86868b; margin-top: 6px;">{today} &middot; {len(summaries)} paper(s)</div>
+    </div>
 {body}
-    <div style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 22px;">Curated from arXiv, scored and summarized for you.</div>
+    <div style="border-top: 1px solid #ededef; margin-top: 40px; padding-top: 28px; text-align: center; color: #86868b; font-size: 13.5px;">Built on open research from arXiv.org</div>
   </div>
 </div>"""
 
